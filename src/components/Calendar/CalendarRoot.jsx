@@ -10,9 +10,6 @@ import { DayGrid } from './DayGrid';
 import { NoteSection } from '../Notes/NoteSection';
 import paperFlipSound from '../../../assets/paper.wav';
 
-const MIN_NOTES_PANEL_HEIGHT = 220;
-const MIN_CALENDAR_PANEL_HEIGHT = 260;
-
 const pageVariants = {
   enter: (direction) => ({
     rotateX: direction > 0 ? -70 : 70,
@@ -45,11 +42,8 @@ export default function CalendarRoot() {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 1));
   const [transitionDirection, setTransitionDirection] = useState(1);
   const [theme, setTheme] = useLocalStorage('calendar-theme', 'light');
-  const [notesPanelHeight, setNotesPanelHeight] = useLocalStorage('calendar-notes-panel-height', 320);
-  const [isResizingNotes, setIsResizingNotes] = useState(false);
   const flipAudioRef = useRef(null);
   const stopAudioTimeoutRef = useRef(null);
-  const rightPanelRef = useRef(null);
   const {
     activeNote,
     activeNoteId,
@@ -168,50 +162,6 @@ export default function CalendarRoot() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   }, [setTheme]);
 
-  useEffect(() => {
-    if (!isResizingNotes) {
-      return undefined;
-    }
-
-    const handlePointerMove = (event) => {
-      const rightPanel = rightPanelRef.current;
-
-      if (!rightPanel) {
-        return;
-      }
-
-      const { bottom, height } = rightPanel.getBoundingClientRect();
-      const maxNotesHeight = Math.max(MIN_NOTES_PANEL_HEIGHT, height - MIN_CALENDAR_PANEL_HEIGHT);
-      const nextNotesHeight = Math.min(
-        Math.max(bottom - event.clientY, MIN_NOTES_PANEL_HEIGHT),
-        maxNotesHeight,
-      );
-
-      setNotesPanelHeight(Math.round(nextNotesHeight));
-    };
-
-    const handlePointerUp = () => {
-      setIsResizingNotes(false);
-    };
-
-    document.body.style.cursor = 'row-resize';
-    document.body.style.userSelect = 'none';
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-
-    return () => {
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    };
-  }, [isResizingNotes, setNotesPanelHeight]);
-
-  const handleResizeStart = useCallback((event) => {
-    event.preventDefault();
-    setIsResizingNotes(true);
-  }, []);
-
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(currentDate)),
     end: endOfWeek(endOfMonth(currentDate))
@@ -243,11 +193,7 @@ export default function CalendarRoot() {
             </div>
 
             {/* Right Panel: Functional Grid */}
-            <div
-              ref={rightPanelRef}
-              className="flex lg:w-3/5 flex-col lg:h-full lg:min-h-0"
-              style={{ '--notes-panel-height': `${notesPanelHeight}px` }}
-            >
+            <div className="flex lg:w-3/5 flex-col lg:h-full lg:min-h-0">
               <div
                 className="flex flex-1 flex-col gap-8 p-6 md:p-10 lg:min-h-0 lg:px-12 lg:pt-12 xl:px-16 xl:pt-16"
                 style={{ minHeight: 0 }}
@@ -271,20 +217,7 @@ export default function CalendarRoot() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-center px-6 md:px-10 lg:px-6 xl:px-8">
-                <button
-                  type="button"
-                  aria-label="Resize notes section"
-                  onPointerDown={handleResizeStart}
-                  className="group flex w-full cursor-row-resize items-center justify-center py-2"
-                >
-                  <span className="h-1 w-16 rounded-full bg-[var(--border)] transition-colors group-hover:bg-[var(--muted-text)]" />
-                </button>
-              </div>
-
-              <div
-                className="border-t border-[var(--border)] px-6 pb-6 pt-6 md:h-[clamp(220px,var(--notes-panel-height),55svh)] md:px-10 md:pb-10 md:overflow-y-auto lg:h-[clamp(220px,var(--notes-panel-height),calc(100%_-_260px))] lg:flex-none lg:px-6 lg:pb-12 xl:px-8 xl:pb-16"
-              >
+              <div className="border-t border-[var(--border)] px-6 pb-6 pt-6 md:px-10 md:pb-10 lg:max-h-[32vh] lg:flex-none lg:overflow-y-auto lg:px-6 lg:pb-12 xl:px-8 xl:pb-16">
                 <NoteSection
                   activeNote={activeNote}
                   activeNoteId={activeNoteId}

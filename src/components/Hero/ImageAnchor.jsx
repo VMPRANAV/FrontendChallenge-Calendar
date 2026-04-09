@@ -1,7 +1,7 @@
 
 export const ImageAnchor = ({ currentMonth }) => {
   return (
-    <div className="relative h-full min-h-[300px] md:min-h-full overflow-hidden">
+    <div className="relative min-h-[280px] overflow-hidden sm:min-h-[320px] md:min-h-[360px] lg:h-full lg:min-h-full">
       <img
         src={`https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80`}
         className="absolute inset-0 w-full h-full object-cover"

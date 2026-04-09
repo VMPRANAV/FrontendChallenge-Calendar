@@ -2,7 +2,14 @@ import { DayCell } from './DayCell';
 
 const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
-export const DayGrid = ({ days, range, onDateClick, currentMonth }) => {
+export const DayGrid = ({
+  activeNoteId,
+  currentSelection,
+  currentMonth,
+  entryForDate,
+  onDateClick,
+  days,
+}) => {
   return (
     <div className="grid grid-cols-7 gap-y-1">
       {WEEKDAYS.map((day) => (
@@ -13,8 +20,10 @@ export const DayGrid = ({ days, range, onDateClick, currentMonth }) => {
       {days.map((day) => (
         <DayCell
           key={day.toString()}
+          activeNoteId={activeNoteId}
           date={day}
-          range={range}
+          currentSelection={currentSelection}
+          entry={entryForDate(day, activeNoteId)}
           onSelect={onDateClick}
           isCurrentMonth={day.getMonth() === currentMonth}
         />

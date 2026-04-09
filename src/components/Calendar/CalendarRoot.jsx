@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
+import * as FramerMotion from 'framer-motion';
 import { ImageAnchor } from '../Hero/ImageAnchor';
 import { SpiralBinder } from './SpiralBinder';
 import { useCalendarRange } from '../../hooks/useCalendarRange';
@@ -39,16 +39,37 @@ const pageVariants = {
 export default function CalendarRoot() {
   const [currentDate, setCurrentDate] = useState(new Date(2022, 0, 1)); // January 2022 as per prompt
   const [transitionDirection, setTransitionDirection] = useState(1);
-  const { range, handleDateClick } = useCalendarRange();
+  const {
+    activeNote,
+    activeNoteId,
+    changeMonth,
+    currentSelection,
+    handleDateClick,
+    removeEntry,
+    selectEntry,
+    setMonthDefaultActive,
+    updateActiveNote,
+    visibleEntries,
+    entryForDate,
+  } = useCalendarRange(currentDate);
+  const MotionPage = FramerMotion.motion.div;
 
   const handlePrevMonth = () => {
     setTransitionDirection(-1);
-    setCurrentDate((prev) => subMonths(prev, 1));
+    setCurrentDate((prev) => {
+      const nextDate = subMonths(prev, 1);
+      changeMonth(nextDate);
+      return nextDate;
+    });
   };
 
   const handleNextMonth = () => {
     setTransitionDirection(1);
-    setCurrentDate((prev) => addMonths(prev, 1));
+    setCurrentDate((prev) => {
+      const nextDate = addMonths(prev, 1);
+      changeMonth(nextDate);
+      return nextDate;
+    });
   };
 
   const days = eachDayOfInterval({
@@ -59,9 +80,12 @@ export default function CalendarRoot() {
   const monthKey = format(currentDate, 'yyyy-MM');
 
   return (
-    <div className="calendar-container mx-auto my-12 relative max-w-6xl min-h-[600px]" style={{ perspective: '1800px' }}>
-      <AnimatePresence mode="wait" custom={transitionDirection} initial={false}>
-        <motion.div
+    <div
+      className="flex min-h-screen w-full bg-white p-3 sm:p-4 lg:h-screen lg:min-h-0 lg:items-stretch lg:p-6"
+      style={{ perspective: '1800px' }}
+    >
+      <FramerMotion.AnimatePresence mode="wait" custom={transitionDirection} initial={false}>
+        <MotionPage
           key={monthKey}
           custom={transitionDirection}
           variants={pageVariants}
@@ -69,30 +93,47 @@ export default function CalendarRoot() {
           animate="center"
           exit="exit"
           style={{ transformStyle: 'preserve-3d', transformOrigin: 'top center' }}
-          className="relative"
+          className="calendar-container relative flex w-full flex-1 overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--bg)] shadow-[0_24px_60px_rgba(15,23,42,0.08)] lg:min-h-0"
         >
           <SpiralBinder />
-          <div className="flex flex-col md:flex-row min-h-[600px]">
+          <div className="flex min-h-[calc(100vh-1.5rem)] w-full flex-col lg:h-full lg:min-h-0 lg:flex-row">
             {/* Left Panel: Hero */}
-            <div className="md:w-5/12 border-r border-[var(--border)] bg-gray-100">
+            <div className="lg:w-1/2 lg:border-r lg:border-[var(--border)] bg-gray-50">
               <ImageAnchor currentMonth={format(currentDate, 'MMMM')} />
             </div>
 
             {/* Right Panel: Functional Grid */}
-            <div className="md:w-7/12 p-4 md:p-10 flex flex-col">
+            <div className="flex lg:w-1/2 flex-col p-6 md:p-10 lg:h-full lg:min-h-0 lg:p-12 xl:p-16">
               <Header currentDate={currentDate} onPrev={handlePrevMonth} onNext={handleNextMonth} />
-              <div className="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
-                <div className="lg:col-span-2">
-                  <DayGrid days={days} range={range} onDateClick={handleDateClick} currentMonth={currentDate.getMonth()} />
+              <div className="flex flex-1 flex-col gap-8 lg:min-h-0">
+                <div className="flex-1">
+                  <DayGrid
+                    days={days}
+                    activeNoteId={activeNoteId}
+                    entryForDate={entryForDate}
+                    currentSelection={currentSelection}
+                    onDateClick={handleDateClick}
+                    currentMonth={currentDate.getMonth()}
+                  />
                 </div>
-                <div className="border-t lg:border-t-0 lg:border-l border-[var(--border)] pt-8 lg:pt-0 lg:pl-8">
-                  <NoteSection />
+
+                <div className="border-t border-[var(--border)] pt-6 lg:max-h-[32vh] lg:overflow-y-auto">
+                  <NoteSection
+                    activeNote={activeNote}
+                    activeNoteId={activeNoteId}
+                    onRemoveEntry={removeEntry}
+                    onResetEditor={setMonthDefaultActive}
+                    onSelectEntry={selectEntry}
+                    onSetMonthDefault={setMonthDefaultActive}
+                    onUpdateNote={updateActiveNote}
+                    visibleEntries={visibleEntries}
+                  />
                 </div>
               </div>
             </div>
           </div>
-        </motion.div>
-      </AnimatePresence>
+        </MotionPage>
+      </FramerMotion.AnimatePresence>
     </div>
   );
 }

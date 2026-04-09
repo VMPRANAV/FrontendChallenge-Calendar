@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns';
 import * as FramerMotion from 'framer-motion';
 import { ImageAnchor } from '../Hero/ImageAnchor';
@@ -7,6 +7,7 @@ import { useCalendarRange } from '../../hooks/useCalendarRange';
 import { Header } from './Header';
 import { DayGrid } from './DayGrid';
 import { NoteSection } from '../Notes/NoteSection';
+import paperFlipSound from '../../../assets/paper.wav';
 
 const pageVariants = {
   enter: (direction) => ({
@@ -39,6 +40,8 @@ const pageVariants = {
 export default function CalendarRoot() {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 1));
   const [transitionDirection, setTransitionDirection] = useState(1);
+  const flipAudioRef = useRef(null);
+  const stopAudioTimeoutRef = useRef(null);
   const {
     activeNote,
     activeNoteId,
@@ -55,43 +58,66 @@ export default function CalendarRoot() {
   } = useCalendarRange(currentDate);
   const MotionPage = FramerMotion.motion.div;
 
-  const handlePrevMonth = () => {
-    setTransitionDirection(-1);
-    setCurrentDate((prev) => {
-      const nextDate = subMonths(prev, 1);
-      changeMonth(nextDate);
-      return nextDate;
-    });
-  };
+  const playFlipSound = useCallback(() => {
+    const audio = flipAudioRef.current;
 
-  const handleNextMonth = () => {
-    setTransitionDirection(1);
+    if (!audio) {
+      return;
+    }
+
+    if (stopAudioTimeoutRef.current) {
+      window.clearTimeout(stopAudioTimeoutRef.current);
+      stopAudioTimeoutRef.current = null;
+    }
+
+    audio.volume = 0.50;
+    audio.currentTime = 0;
+    void audio.play().catch(() => {
+      // Ignore playback failures (for example due to browser autoplay rules).
+    });
+
+    stopAudioTimeoutRef.current = window.setTimeout(() => {
+      audio.pause();
+      audio.currentTime = 0;
+      stopAudioTimeoutRef.current = null;
+    }, 1000);
+  }, []);
+
+  const navigateMonth = useCallback((direction) => {
+    setTransitionDirection(direction);
     setCurrentDate((prev) => {
-      const nextDate = addMonths(prev, 1);
+      const nextDate = direction > 0 ? addMonths(prev, 1) : subMonths(prev, 1);
       changeMonth(nextDate);
       return nextDate;
     });
-  };
+    playFlipSound();
+  }, [changeMonth, playFlipSound]);
+
+  const handlePrevMonth = useCallback(() => {
+    navigateMonth(-1);
+  }, [navigateMonth]);
+
+  const handleNextMonth = useCallback(() => {
+    navigateMonth(1);
+  }, [navigateMonth]);
 
   useEffect(() => {
-    const goToPreviousMonth = () => {
-      setTransitionDirection(-1);
-      setCurrentDate((prev) => {
-        const nextDate = subMonths(prev, 1);
-        changeMonth(nextDate);
-        return nextDate;
-      });
-    };
+    const audio = new Audio(paperFlipSound);
+    audio.preload = 'auto';
+    audio.volume = 0.12;
+    flipAudioRef.current = audio;
 
-    const goToNextMonth = () => {
-      setTransitionDirection(1);
-      setCurrentDate((prev) => {
-        const nextDate = addMonths(prev, 1);
-        changeMonth(nextDate);
-        return nextDate;
-      });
+    return () => {
+      if (stopAudioTimeoutRef.current) {
+        window.clearTimeout(stopAudioTimeoutRef.current);
+        stopAudioTimeoutRef.current = null;
+      }
+      audio.pause();
+      flipAudioRef.current = null;
     };
+  }, []);
 
+  useEffect(() => {
     const handleKeyNavigation = (event) => {
       const target = event.target;
       const tagName = target?.tagName;
@@ -106,12 +132,12 @@ export default function CalendarRoot() {
 
       if (event.key === 'ArrowUp') {
         event.preventDefault();
-        goToPreviousMonth();
+        handlePrevMonth();
       }
 
       if (event.key === 'ArrowDown') {
         event.preventDefault();
-        goToNextMonth();
+        handleNextMonth();
       }
     };
 
@@ -120,7 +146,7 @@ export default function CalendarRoot() {
     return () => {
       window.removeEventListener('keydown', handleKeyNavigation);
     };
-  }, [changeMonth]);
+  }, [handleNextMonth, handlePrevMonth]);
 
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(currentDate)),

@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 export const Header = ({ currentDate, onPrev, onNext }) => {
   return (
@@ -13,17 +13,19 @@ export const Header = ({ currentDate, onPrev, onNext }) => {
         </span>
       </div>
       <div className="flex gap-2">
-        <button 
+        <button
           onClick={onPrev}
+          aria-label="Previous month"
           className="p-2 hover:bg-gray-100 rounded-full transition-colors border border-gray-200"
         >
-          <ChevronLeft size={20} />
+          <ChevronUp size={20} />
         </button>
-        <button 
+        <button
           onClick={onNext}
+          aria-label="Next month"
           className="p-2 hover:bg-gray-100 rounded-full transition-colors border border-gray-200"
         >
-          <ChevronRight size={20} />
+          <ChevronDown size={20} />
         </button>
       </div>
     </div>

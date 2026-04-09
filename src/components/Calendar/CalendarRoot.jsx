@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns';
 import * as FramerMotion from 'framer-motion';
 import { ImageAnchor } from '../Hero/ImageAnchor';
@@ -72,6 +72,55 @@ export default function CalendarRoot() {
       return nextDate;
     });
   };
+
+  useEffect(() => {
+    const goToPreviousMonth = () => {
+      setTransitionDirection(-1);
+      setCurrentDate((prev) => {
+        const nextDate = subMonths(prev, 1);
+        changeMonth(nextDate);
+        return nextDate;
+      });
+    };
+
+    const goToNextMonth = () => {
+      setTransitionDirection(1);
+      setCurrentDate((prev) => {
+        const nextDate = addMonths(prev, 1);
+        changeMonth(nextDate);
+        return nextDate;
+      });
+    };
+
+    const handleKeyNavigation = (event) => {
+      const target = event.target;
+      const tagName = target?.tagName;
+      const isTypingTarget =
+        tagName === 'INPUT' ||
+        tagName === 'TEXTAREA' ||
+        target?.isContentEditable;
+
+      if (isTypingTarget) {
+        return;
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        goToPreviousMonth();
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        goToNextMonth();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyNavigation);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyNavigation);
+    };
+  }, [changeMonth]);
 
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(currentDate)),

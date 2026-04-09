@@ -1,4 +1,5 @@
 import CalendarRoot from './components/Calendar/CalendarRoot';
+import './App.css';
 
 function App() {
   return (

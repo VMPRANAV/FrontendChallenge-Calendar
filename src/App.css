@@ -219,3 +219,79 @@
   background: linear-gradient(to bottom, #9ca3af, #4b5563);
   box-shadow: var(--shadow);
 }
+
+.panel-resize-handle {
+  position: relative;
+  flex: 0 0 18px;
+  align-items: center;
+  justify-content: center;
+  cursor: row-resize;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(to right, transparent, color-mix(in srgb, var(--surface-muted) 84%, transparent), transparent);
+  touch-action: none;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.panel-resize-handle:hover,
+.panel-resize-handle:focus-visible {
+  background-color: color-mix(in srgb, var(--accent-bg) 75%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-border) 60%, transparent);
+  outline: none;
+}
+
+.panel-resize-handle__grip {
+  width: 72px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--border), var(--muted-text), var(--border));
+}
+
+@media (min-width: 1024px) {
+  .panel-resize-handle {
+    cursor: col-resize;
+    border-top: 0;
+    border-bottom: 0;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    background:
+      linear-gradient(to bottom, transparent, color-mix(in srgb, var(--surface-muted) 84%, transparent), transparent);
+  }
+
+  .panel-resize-handle__grip {
+    width: 4px;
+    height: 72px;
+    background: linear-gradient(to bottom, var(--border), var(--muted-text), var(--border));
+  }
+}
+
+.section-resize-handle {
+  position: relative;
+  flex: 0 0 18px;
+  align-items: center;
+  justify-content: center;
+  cursor: row-resize;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(to right, transparent, color-mix(in srgb, var(--surface-muted) 84%, transparent), transparent);
+  touch-action: none;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.section-resize-handle:hover,
+.section-resize-handle:focus-visible {
+  background-color: color-mix(in srgb, var(--accent-bg) 75%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-border) 60%, transparent);
+  outline: none;
+}
+
+.section-resize-handle__grip {
+  width: 72px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--border), var(--muted-text), var(--border));
+}

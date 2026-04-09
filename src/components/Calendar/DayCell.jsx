@@ -16,6 +16,7 @@ export const DayCell = ({
   activeNoteId,
   date,
   currentSelection,
+  density = 'comfortable',
   entry,
   isCurrentMonth,
   onSelect,
@@ -29,13 +30,16 @@ export const DayCell = ({
   const isDraftStart = currentSelection && isSameDay(date, currentSelection.start);
   const isActiveEntry = entry && entry.id === activeNoteId;
   const baseColor = entry?.color || '#a855f7';
+  const isCozy = density === 'cozy';
+  const isCompact = density === 'compact';
 
   return (
     <button
       onClick={() => onSelect(date)}
       disabled={!isCurrentMonth}
       className={clsx(
-        'day-cell h-16 w-full relative flex items-center justify-center text-lg transition-all lg:h-10',
+        'day-cell relative flex w-full items-center justify-center transition-all',
+        isCompact ? 'h-8 text-sm' : isCozy ? 'h-9 text-base' : 'h-16 text-lg lg:h-10',
         !isCurrentMonth && 'pointer-events-none opacity-10',
         isActiveEntry && 'z-10 ring-2 ring-offset-1 ring-offset-[var(--ring-offset)]',
       )}
@@ -46,7 +50,7 @@ export const DayCell = ({
             ? hexToRgba('#a855f7', 0.16)
             : undefined,
         color: entry ? (isActiveEntry ? '#ffffff' : baseColor) : undefined,
-        borderRadius: entry || isDraftSelected ? '0.75rem' : undefined,
+        borderRadius: entry || isDraftSelected ? (isCompact ? '0.6rem' : '0.75rem') : undefined,
         boxShadow: isDraftStart ? `inset 0 0 0 2px ${baseColor}` : undefined,
       }}
     >

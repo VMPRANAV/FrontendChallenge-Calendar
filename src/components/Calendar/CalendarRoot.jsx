@@ -42,8 +42,15 @@ export default function CalendarRoot() {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 1));
   const [transitionDirection, setTransitionDirection] = useState(1);
   const [theme, setTheme] = useLocalStorage('calendar-theme', 'light');
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
+  const [heroPanelWidth, setHeroPanelWidth] = useState(40);
+  const [heroPanelMobileHeight, setHeroPanelMobileHeight] = useState(null);
+  const [notesPanelHeight, setNotesPanelHeight] = useState(28);
+  const [notesPanelMobileHeight, setNotesPanelMobileHeight] = useState(null);
   const flipAudioRef = useRef(null);
   const stopAudioTimeoutRef = useRef(null);
+  const splitPaneRef = useRef(null);
+  const rightPanelRef = useRef(null);
   const {
     activeNote,
     activeNoteId,
@@ -158,9 +165,102 @@ export default function CalendarRoot() {
     };
   }, [theme]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   const handleToggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   }, [setTheme]);
+
+  const handleResizeStart = useCallback((event) => {
+    event.preventDefault();
+
+    const panel = splitPaneRef.current;
+
+    if (!panel) {
+      return;
+    }
+
+    const bounds = panel.getBoundingClientRect();
+    const desktopLayout = window.innerWidth >= 1024;
+
+    const updateSize = (pointerEvent) => {
+      if (desktopLayout) {
+        const nextWidth = ((pointerEvent.clientX - bounds.left) / bounds.width) * 100;
+        const constrainedWidth = Math.min(76, Math.max(24, nextWidth));
+        setHeroPanelWidth(constrainedWidth);
+        return;
+      }
+
+      const nextHeight = ((pointerEvent.clientY - bounds.top) / bounds.height) * 100;
+      const constrainedHeight = Math.min(68, Math.max(24, nextHeight));
+      setHeroPanelMobileHeight(constrainedHeight);
+    };
+
+    updateSize(event);
+
+    const handlePointerMove = (moveEvent) => {
+      updateSize(moveEvent);
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  }, []);
+
+  const handleNotesResizeStart = useCallback((event) => {
+    event.preventDefault();
+
+    const panel = rightPanelRef.current;
+
+    if (!panel) {
+      return;
+    }
+
+    const bounds = panel.getBoundingClientRect();
+    const desktopLayout = window.innerWidth >= 1024;
+
+    const updateHeight = (clientY) => {
+      const nextHeight = ((bounds.bottom - clientY) / bounds.height) * 100;
+      const constrainedHeight = desktopLayout
+        ? Math.min(48, Math.max(18, nextHeight))
+        : Math.min(58, Math.max(20, nextHeight));
+
+      if (desktopLayout) {
+        setNotesPanelHeight(constrainedHeight);
+        return;
+      }
+
+      setNotesPanelMobileHeight(constrainedHeight);
+    };
+
+    updateHeight(event.clientY);
+
+    const handlePointerMove = (moveEvent) => {
+      updateHeight(moveEvent.clientY);
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  }, []);
 
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(currentDate)),
@@ -168,6 +268,18 @@ export default function CalendarRoot() {
   });
 
   const monthKey = format(currentDate, 'yyyy-MM');
+  const activeNotesPanelHeight = isDesktop ? notesPanelHeight : notesPanelMobileHeight;
+  const hasFixedNotesPanelHeight = activeNotesPanelHeight !== null;
+  const calendarPanelHeight = hasFixedNotesPanelHeight
+    ? `calc(${100 - activeNotesPanelHeight}% - 18px)`
+    : undefined;
+  const notesPanelSize = hasFixedNotesPanelHeight ? `${activeNotesPanelHeight}%` : undefined;
+  const calendarDensity = activeNotesPanelHeight >= 42 ? 'compact' : activeNotesPanelHeight >= 34 ? 'cozy' : 'comfortable';
+  const heroPanelStyle = isDesktop
+    ? { width: `${heroPanelWidth}%` }
+    : heroPanelMobileHeight !== null
+      ? { height: `${heroPanelMobileHeight}%` }
+      : undefined;
 
   return (
     <div
@@ -186,17 +298,39 @@ export default function CalendarRoot() {
           className="calendar-container relative flex w-full flex-1 overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--bg)] lg:min-h-0"
         >
           <SpiralBinder />
-          <div className="flex min-h-[calc(100vh-1.5rem)] w-full flex-col lg:h-full lg:min-h-0 lg:flex-row">
+          <div
+            ref={splitPaneRef}
+            className="flex min-h-[calc(100vh-1.5rem)] w-full flex-col lg:h-full lg:min-h-0 lg:flex-row"
+          >
             {/* Left Panel: Hero */}
-            <div className="bg-[var(--hero-panel)] lg:w-2/5 lg:border-r lg:border-[var(--border)]">
+            <div
+              className="w-full bg-[var(--hero-panel)] lg:shrink-0 lg:border-r lg:border-[var(--border)]"
+              style={heroPanelStyle}
+            >
               <ImageAnchor currentMonth={format(currentDate, 'MMMM')} />
             </div>
 
+            <button
+              type="button"
+              aria-label="Resize image and calendar panels"
+              aria-orientation={isDesktop ? 'vertical' : 'horizontal'}
+              aria-valuemin={24}
+              aria-valuemax={isDesktop ? 76 : 68}
+              aria-valuenow={Math.round(isDesktop ? heroPanelWidth : heroPanelMobileHeight ?? 40)}
+              onPointerDown={handleResizeStart}
+              className="panel-resize-handle flex self-stretch"
+            >
+              <span className="panel-resize-handle__grip" aria-hidden="true" />
+            </button>
+
             {/* Right Panel: Functional Grid */}
-            <div className="flex lg:w-3/5 flex-col lg:h-full lg:min-h-0 lg:overflow-hidden">
+            <div
+              ref={rightPanelRef}
+              className="flex min-w-0 flex-1 flex-col lg:h-full lg:min-h-0 lg:overflow-hidden"
+            >
               <div
-                className="flex flex-1 flex-col gap-8 p-6 md:p-10 lg:min-h-0 lg:overflow-hidden lg:px-12 lg:pt-12 xl:px-16 xl:pt-16"
-                style={{ minHeight: 0 }}
+                className="flex flex-1 flex-col gap-8 p-6 md:p-10 lg:min-h-0 lg:flex-none lg:overflow-hidden lg:px-12 lg:pt-12 xl:px-16 xl:pt-16"
+                style={{ minHeight: 0, height: calendarPanelHeight }}
               >
                 <Header
                   currentDate={currentDate}
@@ -204,6 +338,7 @@ export default function CalendarRoot() {
                   onNext={handleNextMonth}
                   theme={theme}
                   onToggleTheme={handleToggleTheme}
+                  density={calendarDensity}
                 />
                 <div className="flex-1 lg:min-h-0 lg:overflow-y-auto">
                   <DayGrid
@@ -213,11 +348,28 @@ export default function CalendarRoot() {
                     currentSelection={currentSelection}
                     onDateClick={handleDateClick}
                     currentMonth={currentDate.getMonth()}
+                    density={calendarDensity}
                   />
                 </div>
               </div>
 
-              <div className="border-t border-[var(--border)] px-6 pb-6 pt-6 md:px-10 md:pb-10 lg:max-h-[28vh] lg:flex-none lg:overflow-y-auto lg:px-6 lg:pb-12 xl:px-8 xl:pb-16">
+              <button
+                type="button"
+                aria-label="Resize calendar and notes sections"
+                aria-orientation="horizontal"
+                aria-valuemin={isDesktop ? 18 : 20}
+                aria-valuemax={isDesktop ? 48 : 58}
+                aria-valuenow={Math.round(activeNotesPanelHeight ?? notesPanelHeight)}
+                onPointerDown={handleNotesResizeStart}
+                className="section-resize-handle flex"
+              >
+                <span className="section-resize-handle__grip" aria-hidden="true" />
+              </button>
+
+              <div
+                className="border-t border-[var(--border)] px-6 pb-6 pt-6 md:px-10 md:pb-10 lg:flex-none lg:overflow-y-auto lg:px-6 lg:pb-12 xl:px-8 xl:pb-16"
+                style={{ height: notesPanelSize }}
+              >
                 <NoteSection
                   activeNote={activeNote}
                   activeNoteId={activeNoteId}
